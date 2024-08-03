@@ -51,7 +51,8 @@ const predefinedRecipients = [
      '221767745467@c.us',
      '221762803898@c.us',
      '221776896551@c.us',
-     '221774005404@c.us'
+     '221774005404@c.us',
+     '221777220383@c.us'
 ];
 
 const sendReminder = async (client) => {
@@ -67,7 +68,7 @@ const sendReminder = async (client) => {
 
           const fajrTime = new Date();
           fajrTime.setHours(parseInt(fajrHour), parseInt(fajrMinute), 0, 0);
-          fajrTime.setMinutes(fajrTime.getMinutes() - 30);
+          fajrTime.setMinutes(fajrTime.getMinutes() + 60);
 
           const now = new Date();
           const timeUntilReminder = fajrTime - now;

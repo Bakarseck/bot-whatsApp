@@ -28,25 +28,25 @@ client.on('loading_screen', (percent, message) => {
      console.log('LOADING SCREEN', percent, message);
 });
 
-client.on('message_ack', (msg, ack) => {
-     /*
-         == ACK VALUES ==
-         ACK_ERROR: -1
-         ACK_PENDING: 0
-         ACK_SERVER: 1
-         ACK_DEVICE: 2
-         ACK_READ: 3
-         ACK_PLAYED: 4
-     */
+// client.on('message_ack', (msg, ack) => {
+//      /*
+//          == ACK VALUES ==
+//          ACK_ERROR: -1
+//          ACK_PENDING: 0
+//          ACK_SERVER: 1
+//          ACK_DEVICE: 2
+//          ACK_READ: 3
+//          ACK_PLAYED: 4
+//      */
 
-     // Vérifiez si le message provient ou est destiné à un des contacts suivis
-     if (trackedContacts.includes(msg.from) || trackedContacts.includes(msg.to)) {
-          if (ack === 3) {
-               console.log(`Message lu par ${msg.to}`);
-               client.sendMessage(msg.from, `Votre message a été lu par ${msg.to}`);
-          }
-     }
-});
+//      // Vérifiez si le message provient ou est destiné à un des contacts suivis
+//      if (trackedContacts.includes(msg.from) || trackedContacts.includes(msg.to)) {
+//           if (ack === 3) {
+//                console.log(`Message lu par ${msg.to}`);
+//                client.sendMessage(msg.from, `Votre message a été lu par ${msg.to}`);
+//           }
+//      }
+// });
 
 
 // Connexion réussie
@@ -93,6 +93,13 @@ client.on('message_create', async (message) => {
                message.reply('Veuillez utiliser le format : #rappel [heure:minute].');
           }
      }
+
+     if (message.body.startsWith('#status')) {
+          const newStatus = message.body.substring(8).trim();
+          await client.setStatus(newStatus);
+          message.reply(`Le statut a été mis à jour à : *${newStatus}*`);
+     }
+
 
      // if (message.body.toLocaleLowerCase().startsWith('#imagine')) {
      //      const prompt = message.body.substring(9).trim();

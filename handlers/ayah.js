@@ -3,6 +3,7 @@ const { MessageMedia } = require('whatsapp-web.js');
 const fs = require('fs');
 const path = require('path');
 const { createCanvas, loadImage, registerFont } = require('canvas');
+const PDFDocument = require('pdfkit');
 
 registerFont('NotoNaskhArabic-Regular.ttf', { family: 'Amiri' });
 registerFont('Lobster-Regular.ttf', { family: 'Lobster' });
@@ -19,13 +20,13 @@ const generateQuranVerseImage = async (surahNumber, ayahNumber, ayahText, transl
      ctx.drawImage(backgroundImage, 0, 0, width, height);
 
      // Arabic Text Image
-     
+
      // Add the reference in Arabic
      ctx.font = '30px Amiri';
      ctx.textAlign = 'center';
      ctx.fillStyle = 'black';
-     ctx.fillText(`سورة ${surahNumber}, آية ${ayahNumber}`, width - 20, 150);
-     
+     ctx.fillText(`سورة ${surahNumber}, آية ${ayahNumber}`, width - 250, 190);
+
      ctx.font = '23px Amiri';
      ctx.fillStyle = 'black';
      ctx.textBaseline = 'top';
@@ -41,8 +42,6 @@ const generateQuranVerseImage = async (surahNumber, ayahNumber, ayahText, transl
           }
      });
 
-
-
      const arabicBuffer = canvas.toBuffer('image/png');
      const arabicImagePath = path.join(__dirname, 'quran-verse-arabic.png');
      fs.writeFileSync(arabicImagePath, arabicBuffer);
@@ -51,12 +50,11 @@ const generateQuranVerseImage = async (surahNumber, ayahNumber, ayahText, transl
      ctx.clearRect(0, 0, canvas.width, canvas.height);
      ctx.drawImage(backgroundImage, 0, 0, width, height);
 
-
      // Add the reference in French
-     ctx.font = '30px Lobster';
+     ctx.font = '35px Lobster';
      ctx.fillStyle = 'black';
      ctx.textAlign = 'right';
-     ctx.fillText(`Sourate ${surahNumber}, Ayah ${ayahNumber}`, width - 20, 100);
+     ctx.fillText(`Sourate ${surahNumber}, Ayah ${ayahNumber}`, width - 150, 160);
 
      // French Text Image
      ctx.font = '15px Lobster';
@@ -70,8 +68,6 @@ const generateQuranVerseImage = async (surahNumber, ayahNumber, ayahText, transl
                ctx.fillText(line, width / 2, 230 + (index * 24));
           }
      });
-
-
 
      const frenchBuffer = canvas.toBuffer('image/png');
      const frenchImagePath = path.join(__dirname, 'quran-verse-french.png');
@@ -124,14 +120,30 @@ const handleQuranCommand = async (message, client, to) => {
           };
           let reciter = 'ar.husary';
 
-          if (args.length === 2 || args.length == 1) {
+          if (args.length === 1 || (args.length === 2 && isNaN(args[1]))) {
                // Get a random verse
+               console.log('Getting a random verse');
                const randomAyahNumber = Math.floor(Math.random() * 6236) + 1;
                if (args.length === 2 && reciters[args[1].toLowerCase()]) {
                     reciter = reciters[args[1].toLowerCase()];
                }
                urlText = `https://api.alquran.cloud/v1/ayah/${randomAyahNumber}/editions/quran-simple,fr.hamidullah`;
                urlAudio = `https://api.alquran.cloud/v1/ayah/${randomAyahNumber}/${reciter}`;
+          } else if (args.length === 2 && !isNaN(args[1])) {
+               // Whole Surah
+               const surahNumber = args[1];
+               urlText = `https://api.alquran.cloud/v1/surah/${surahNumber}/editions/quran-simple,fr.hamidullah`;
+
+               const responseText = await axios.get(urlText, { timeout: 120000 });
+               const dataText = responseText.data.data;
+
+               const pdfPath = await generateQuranSurahPDF(dataText[0], dataText[1]);
+
+               // Send the PDF via WhatsApp
+               console.log('Sending the PDF via WhatsApp');
+               const pdfMedia = MessageMedia.fromFilePath(pdfPath);
+               to ? await client.sendMessage(to, pdfMedia) : await client.sendMessage(message.from, pdfMedia);
+               return; // Exit early after sending the whole Surah
           } else if (args.length >= 3 && !isNaN(args[1]) && !isNaN(args[2])) {
                // Get a specific verse
                const surah = args[1];
@@ -180,6 +192,32 @@ const handleQuranCommand = async (message, client, to) => {
           console.error('Erreur lors de la récupération du verset du Quran :', error);
           message.reply('Désolé, une erreur est survenue lors de la récupération du verset.');
      }
+};
+
+const generateQuranSurahPDF = async (surahData, translationData) => {
+     return new Promise((resolve, reject) => {
+          const doc = new PDFDocument();
+          const pdfPath = './quran_surah.pdf';
+          const writeStream = fs.createWriteStream(pdfPath);
+          doc.pipe(writeStream);
+
+          // Ajouter le texte arabe complet
+          doc.font('NotoNaskhArabic-Regular.ttf').fontSize(14);
+          surahData.ayahs.forEach((ayah, index) => {
+               doc.text(ayah.text, { align: 'left' });
+               doc.addPage();
+          });
+
+
+          // doc.font('Arial.ttf').fontSize(14).text(translationData.ayahs[index].text, { align: 'left' });
+          doc.end();
+          writeStream.on('finish', () => {
+               resolve(pdfPath);
+          });
+          writeStream.on('error', (error) => {
+               reject(error);
+          });
+     });
 };
 
 module.exports = handleQuranCommand;
