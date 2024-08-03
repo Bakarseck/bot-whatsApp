@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { createCanvas, loadImage, registerFont } = require('canvas');
 
-registerFont('/home/barhamtalent/my-bot/static/NotoNaskhArabic-Regular.ttf', { family: 'Amiri' });
+registerFont('NotoNaskhArabic-Regular.ttf', { family: 'Amiri' });
 registerFont('Lobster-Regular.ttf', { family: 'Lobster' });
 
 const generateQuranVerseImage = async (surahNumber, ayahNumber, ayahText, translationText) => {
