@@ -1,3 +1,12 @@
 node_modules
 .wwebjs_auth
 .wwebjs_cache
+.env
+
+
+               // Récupérer l'audio
+               const audioUrl = `http://api.alquran.cloud/v1/ayah/${surahNumber}:${ayahNumber}/ar.husary`;
+               const _audioResponse = await axios.get(audioUrl);
+               const audio = _audioResponse.data.data.audio;
+
+               const quranText = _audioResponse.data.data.text;

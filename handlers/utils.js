@@ -1,6 +1,9 @@
-const { createCanvas, loadImage } = require('canvas');
+const { createCanvas, loadImage, registerFont } = require('canvas');
 const fs = require('fs');
 const path = require('path');
+registerFont('NotoNaskhArabic-Regular.ttf', { family: 'Amiri' });
+registerFont('Lobster-Regular.ttf', { family: 'Lobster' });
+
 
 const getWrappedText = (ctx, text, maxWidth) => {
      const words = text.split(' ');
@@ -36,13 +39,12 @@ const generateQuranVerseImage = async (surahNumber, ayahNumber, ayahText, transl
      const maxWidth = width - 40;
      const arabicLines = getWrappedText(ctx, ayahText, maxWidth);
 
-     ctx.font = '15px Lobster';
+     ctx.font = '18px Lobster';
      const frenchLines = getWrappedText(ctx, translationText, maxWidth);
 
      if (arabicLines.length <= 5 && frenchLines.length <= 5) {
           // Draw the background image
           ctx.drawImage(backgroundImage, 0, 0, width, height);
-
 
           // Add the Arabic text
           ctx.font = '23px Amiri';
@@ -66,9 +68,9 @@ const generateQuranVerseImage = async (surahNumber, ayahNumber, ayahText, transl
           });
 
           const buffer = canvas.toBuffer('image/png');
-          const imagePath = path.join(__dirname, 'quran-verse.png');
-          fs.writeFileSync(imagePath, buffer);
-          return { imagePath };
+          const arabicImagePath = path.join(__dirname, 'quran-verse.png');
+          fs.writeFileSync(arabicImagePath, buffer);
+          return { arabicImagePath };
 
      } else {
           // Generate separate Arabic image
@@ -84,7 +86,7 @@ const generateQuranVerseImage = async (surahNumber, ayahNumber, ayahText, transl
           ctx.fillStyle = 'black';
           ctx.textBaseline = 'top';
           arabicLines.forEach((line, index) => {
-               ctx.fillText(line, width / 2, 230 + (index * 40));
+               ctx.fillText(line, width / 2, 250 + (index * 40));
           });
 
           const arabicBuffer = canvas.toBuffer('image/png');
@@ -98,9 +100,9 @@ const generateQuranVerseImage = async (surahNumber, ayahNumber, ayahText, transl
           ctx.font = '35px Lobster';
           ctx.textAlign = 'right';
           ctx.fillStyle = 'black';
-          ctx.fillText(`Sourate ${surahNumber}, Ayah ${ayahNumber}`, width - 150, 160);
+          ctx.fillText(`Sourate ${surahNumber}, Ayah ${ayahNumber}`, width - 100, 160);
 
-          ctx.font = '15px Lobster';
+          ctx.font = '18px Lobster';
           ctx.fillStyle = 'black';
           ctx.textAlign = 'center';
           frenchLines.forEach((line, index) => {
@@ -115,8 +117,4 @@ const generateQuranVerseImage = async (surahNumber, ayahNumber, ayahText, transl
      }
 };
 
-// Usage example:
-generateQuranVerseImage(1, 1,
-     "يَا أَيُّهَا الَّذِينَ آمَنُوا إِذَا تَدَايَنتُم بِدَيْنٍ إِلَىٰ أَجَلٍ مُّسَمًّى فَاكْتُبُوهُ ۚ وَلْيَكْتُب بَّيْنَكُمْ كَاتِبٌ بِالْعَدْلِ ۚ وَلَا يَأْبَ كَاتِبٌ أَن يَكْتُبَ كَمَا عَلَّمَهُ اللَّهُ فَلْيَكْتُبْ وَلْيُمْلِلِ الَّذِي عَلَيْهِ الْحَقُّ وَلْيَتَّقِ اللَّهَ رَبَّهُ وَلَا يَبْخَسْ مِنْهُ شَيْئًا ۚ فَإِن كَانَ الَّذِي عَلَيْهِ الْحَقُّ سَفِيهًا أَوْ ضَعِيفًا أَوْ لَا يَسْتَطِيعُ أَن يُمِلَّ هُوَ فَلْيُمْلِلْ وَلِيُّهُ بِالْعَدْلِ ۚ وَاسْتَشْهِدُوا شَهِيدَيْنِ مِن رِّجَالِكُمْ ۖ فَإِن لَّمْ يَكُونَا رَجُلَيْنِ فَرَجُلٌ وَامْرَأَتَانِ مِمَّن تَرْضَوْنَ مِنَ الشُّهَدَاءِ أَن تَضِلَّ إِحْدَاهُمَا فَتُذَكِّرَ إِحْدَاهُمَا الْأُخْرَىٰ ۚ وَلَا يَأْبَ الشُّهَدَاءُ إِذَا مَا دُعُوا ۚ وَلَا تَسْأَمُوا أَن تَكْتُبُوهُ صَغِيرًا أَوْ كَبِيرًا إِلَىٰ أَجَلِهِ ۚ ذَٰلِكُمْ أَقْسَطُ عِندَ اللَّهِ وَأَقْوَمُ لِلشَّهَادَةِ وَأَدْنَىٰ أَلَّا تَرْتَابُوا إِلَّا أَن تَكُونَ تِجَارَةً حَاضِرَةً تُدِيرُونَهَا بَيْنَكُمْ فَلَيْسَ عَلَيْكُمْ جُنَاحٌ أَلَّا تَكْتُبُوهَا ۗ وَأَشْهِدُوا إِذَا تَبَايَعْتُمْ ۚ وَلَا يُضَارَّ كَاتِبٌ وَلَا شَهِيدٌ ۚ وَإِن تَفْعَلُوا فَإِنَّهُ فُسُوقٌ بِكُمْ ۗ وَاتَّقُوا اللَّهَ وَيُعَلِّمُكُمُ اللَّهُ ۗ وَاللَّهُ بِكُلِّ شَيْءٍ عَلِيمٌ",
-     "O you who have believed, when you contract a debt for a specified term, write it down. And let a scribe write [it] between you in justice. Let no scribe refuse to write as Allah has taught him. So let him write and let the one who has the obligation dictate. And let him fear Allah, his Lord, and not leave anything out of it. But if the one who has the obligation is of limited understanding or weak or unable to dictate himself, then let his guardian dictate in justice. And bring to witness two witnesses");
-
+module.exports = { generateQuranVerseImage };

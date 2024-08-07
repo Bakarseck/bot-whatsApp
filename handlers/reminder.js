@@ -1,5 +1,6 @@
 const axios = require('axios');
 const { MessageMedia } = require('whatsapp-web.js');
+const { generateQuranVerseImage } = require('./utils');
 
 const getPrayerTimes = async () => {
      try {
@@ -23,17 +24,6 @@ const getRandomAyah = async () => {
 
      const dataText = responseText.data.data;
      const dataAudio = responseAudio.data.data;
-
-
-     console.log(
-          {
-               quranText: dataText[0].text,
-               translation: dataText[1].text,
-               audioUrl: dataAudio.audio,
-               surahNumber: dataAudio.surah.number,
-               ayahNumber: dataAudio.numberInSurah
-          }
-     );
 
      return {
           quranText: dataText[0].text,
@@ -76,11 +66,20 @@ const sendReminder = async (client) => {
           if (timeUntilReminder > 0) {
                setTimeout(async () => {
                     const { quranText, translation, audioUrl, surahNumber, ayahNumber } = await getRandomAyah();
+                    const { arabicImagePath, frenchImagePath } = await generateQuranVerseImage(surahNumber, ayahNumber, quranText, translation);
                     const reply = `\t\t*Ayah Fajr Gui* \n\n\n Sourate: ${surahNumber} Ayah: ${ayahNumber}\n\n ${quranText}\n\n\n ${translation}`;
 
                     for (const recipient of predefinedRecipients) {
-                         console.log(recipient);
-                         await client.sendMessage(recipient, reply);
+
+                         if (arabicImagePath) {
+                              const arabicMedia = MessageMedia.fromFilePath(arabicImagePath);
+                              await client.sendMessage(recipient, arabicMedia);
+                         }
+
+                         if (frenchImagePath && frenchImagePath !== arabicImagePath) {
+                              const frenchMedia = MessageMedia.fromFilePath(frenchImagePath);
+                              await client.sendMessage(recipient, frenchMedia);
+                         }
 
                          const audioResponse = await axios.get(audioUrl, { responseType: 'arraybuffer' });
                          const audioBuffer = Buffer.from(audioResponse.data, 'binary').toString('base64');
@@ -98,7 +97,6 @@ const sendReminder = async (client) => {
 };
 
 const scheduleReminder = async (client, hour, minute, message) => {
-
      try {
           const now = new Date();
           const reminderTime = new Date();
@@ -112,17 +110,26 @@ const scheduleReminder = async (client, hour, minute, message) => {
                          await client.sendMessage(recipient, message);
                     } else {
                          const { quranText, translation, audioUrl, surahNumber, ayahNumber } = await getRandomAyah();
-                         const reply = `\t\t*Ayah Rappel* \n\n\n Sourate: ${surahNumber} Ayah: ${ayahNumber}\n\n ${quranText}\n\n\n ${translation}`;
+                         const { arabicImagePath, frenchImagePath } = await generateQuranVerseImage(surahNumber, ayahNumber, quranText, translation);
 
-                         predefinedRecipients.forEach(async recipient => {
-                              await client.sendMessage(recipient, reply);
+                         for (const recipient of predefinedRecipients) {
 
-                              const audioResponse = await axios.get(audioUrl, { responseType: 'arraybuffer', timeout: 60000 });
+                              if (arabicImagePath) {
+                                   const arabicMedia = MessageMedia.fromFilePath(arabicImagePath);
+                                   await client.sendMessage(recipient, arabicMedia);
+                              }
+
+                              if (frenchImagePath && frenchImagePath !== arabicImagePath) {
+                                   const frenchMedia = MessageMedia.fromFilePath(frenchImagePath);
+                                   await client.sendMessage(recipient, frenchMedia);
+                              }
+
+                              const audioResponse = await axios.get(audioUrl, { responseType: 'arraybuffer' });
                               const audioBuffer = Buffer.from(audioResponse.data, 'binary').toString('base64');
                               const media = new MessageMedia('audio/mpeg', audioBuffer);
 
                               await client.sendMessage(recipient, media);
-                         });
+                         }
                     }
                }, timeUntilReminder);
           } else {

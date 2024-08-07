@@ -8,6 +8,25 @@ const PDFDocument = require('pdfkit');
 registerFont('NotoNaskhArabic-Regular.ttf', { family: 'Amiri' });
 registerFont('Lobster-Regular.ttf', { family: 'Lobster' });
 
+const getWrappedText = (ctx, text, maxWidth) => {
+     const words = text.split(' ');
+     let lines = [];
+     let currentLine = words[0];
+
+     for (let i = 1; i < words.length; i++) {
+          const word = words[i];
+          const width = ctx.measureText(currentLine + ' ' + word).width;
+          if (width < maxWidth) {
+               currentLine += ' ' + word;
+          } else {
+               lines.push(currentLine);
+               currentLine = word;
+          }
+     }
+     lines.push(currentLine);
+     return lines;
+};
+
 const generateQuranVerseImage = async (surahNumber, ayahNumber, ayahText, translationText) => {
      const width = 500;
      const height = 800;
@@ -17,82 +36,88 @@ const generateQuranVerseImage = async (surahNumber, ayahNumber, ayahText, transl
 
      // Load the background image
      const backgroundImage = await loadImage(path.join(__dirname, 'cadre.jpeg'));
-     ctx.drawImage(backgroundImage, 0, 0, width, height);
 
      // Arabic Text Image
-
-     // Add the reference in Arabic
-     ctx.font = '30px Amiri';
-     ctx.textAlign = 'center';
-     ctx.fillStyle = 'black';
-     ctx.fillText(`سورة ${surahNumber}, آية ${ayahNumber}`, width - 250, 190);
-
      ctx.font = '23px Amiri';
-     ctx.fillStyle = 'black';
-     ctx.textBaseline = 'top';
-
      const maxWidth = width - 40;
-     const lineHeight = 40;
      const arabicLines = getWrappedText(ctx, ayahText, maxWidth);
-     arabicLines.forEach((line, index) => {
-          if (arabicLines.length < 6) {
-               ctx.fillText(line, width / 2, 300 + (index * lineHeight));
-          } else {
-               ctx.fillText(line, width / 2, 230 + (index * lineHeight));
-          }
-     });
 
-     const arabicBuffer = canvas.toBuffer('image/png');
-     const arabicImagePath = path.join(__dirname, 'quran-verse-arabic.png');
-     fs.writeFileSync(arabicImagePath, arabicBuffer);
-
-     // Clear the canvas
-     ctx.clearRect(0, 0, canvas.width, canvas.height);
-     ctx.drawImage(backgroundImage, 0, 0, width, height);
-
-     // Add the reference in French
-     ctx.font = '35px Lobster';
-     ctx.fillStyle = 'black';
-     ctx.textAlign = 'right';
-     ctx.fillText(`Sourate ${surahNumber}, Ayah ${ayahNumber}`, width - 150, 160);
-
-     // French Text Image
-     ctx.font = '15px Lobster';
-     ctx.fillStyle = 'black';
-     ctx.textAlign = 'center';
+     ctx.font = '18px Lobster';
      const frenchLines = getWrappedText(ctx, translationText, maxWidth);
-     frenchLines.forEach((line, index) => {
-          if (frenchLines.length < 6) {
+
+     if (arabicLines.length <= 5 && frenchLines.length <= 5) {
+          // Draw the background image
+          ctx.drawImage(backgroundImage, 0, 0, width, height);
+
+          // Add the Arabic text
+          ctx.font = '23px Amiri';
+          ctx.textAlign = 'center';
+          ctx.fillStyle = 'black';
+          ctx.textBaseline = 'top';
+          arabicLines.forEach((line, index) => {
+               ctx.fillText(line, width / 2, 250 + (index * 40));
+          });
+
+          // Add the reference in French
+          ctx.font = '35px Lobster';
+          ctx.textAlign = 'right';
+          ctx.fillText(`Sourate ${surahNumber}, Ayah ${ayahNumber}`, width - 100, 160);
+
+          // Add the French text
+          ctx.font = '18px Lobster';
+          ctx.textAlign = 'center';
+          frenchLines.forEach((line, index) => {
+               ctx.fillText(line, width / 2, 430 + (index * 24));
+          });
+
+          const buffer = canvas.toBuffer('image/png');
+          const arabicImagePath = path.join(__dirname, 'quran-verse.png');
+          fs.writeFileSync(arabicImagePath, buffer);
+          return { arabicImagePath };
+
+     } else {
+          // Generate separate Arabic image
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(backgroundImage, 0, 0, width, height);
+
+          ctx.font = '30px Amiri';
+          ctx.textAlign = 'center';
+          ctx.fillStyle = 'black';
+          ctx.fillText(`سورة ${surahNumber}, آية ${ayahNumber}`, width / 2, 190);
+
+          ctx.font = '23px Amiri';
+          ctx.fillStyle = 'black';
+          ctx.textBaseline = 'top';
+          arabicLines.forEach((line, index) => {
+               ctx.fillText(line, width / 2, 230 + (index * 40));
+          });
+
+          const arabicBuffer = canvas.toBuffer('image/png');
+          const arabicImagePath = path.join(__dirname, 'quran-verse-arabic.png');
+          fs.writeFileSync(arabicImagePath, arabicBuffer);
+
+          // Generate separate French image
+          ctx.clearRect(0, 0, canvas.width, canvas.height);
+          ctx.drawImage(backgroundImage, 0, 0, width, height);
+
+          ctx.font = '35px Lobster';
+          ctx.textAlign = 'right';
+          ctx.fillStyle = 'black';
+          ctx.fillText(`Sourate ${surahNumber}, Ayah ${ayahNumber}`, width - 100, 160);
+
+          ctx.font = '15px Lobster';
+          ctx.fillStyle = 'black';
+          ctx.textAlign = 'center';
+          frenchLines.forEach((line, index) => {
                ctx.fillText(line, width / 2, 300 + (index * 24));
-          } else {
-               ctx.fillText(line, width / 2, 230 + (index * 24));
-          }
-     });
+          });
 
-     const frenchBuffer = canvas.toBuffer('image/png');
-     const frenchImagePath = path.join(__dirname, 'quran-verse-french.png');
-     fs.writeFileSync(frenchImagePath, frenchBuffer);
+          const frenchBuffer = canvas.toBuffer('image/png');
+          const frenchImagePath = path.join(__dirname, 'quran-verse-french.png');
+          fs.writeFileSync(frenchImagePath, frenchBuffer);
 
-     return { arabicImagePath, frenchImagePath };
-};
-
-const getWrappedText = (ctx, text, maxWidth) => {
-     const words = text.split(' ');
-     let lines = [];
-     let currentLine = words[0];
-
-     for (let i = 1; i < words.length; i++) {
-          const word = words[i];
-          const width = ctx.measureText(currentLine + " " + word).width;
-          if (width < maxWidth) {
-               currentLine += " " + word;
-          } else {
-               lines.push(currentLine);
-               currentLine = word;
-          }
+          return { arabicImagePath, frenchImagePath };
      }
-     lines.push(currentLine);
-     return lines;
 };
 
 const handleQuranCommand = async (message, client, to) => {
@@ -161,8 +186,8 @@ const handleQuranCommand = async (message, client, to) => {
           }
 
           const [responseText, responseAudio] = await Promise.all([
-               axios.get(urlText, { timeout: 120000 }),  // Increased timeout to 120 seconds
-               axios.get(urlAudio, { timeout: 120000 })  // Increased timeout to 120 seconds
+               axios.get(urlText, { timeout: 120000 }),
+               axios.get(urlAudio, { timeout: 120000 })
           ]);
 
           const dataText = responseText.data.data;
@@ -173,13 +198,17 @@ const handleQuranCommand = async (message, client, to) => {
 
           const { arabicImagePath, frenchImagePath } = await generateQuranVerseImage(dataAudio.surah.number, dataAudio.numberInSurah, quranText, translation);
 
-          // Send the Arabic text image via WhatsApp
-          const arabicMedia = MessageMedia.fromFilePath(arabicImagePath);
-          to ? await client.sendMessage(to, arabicMedia) : await client.sendMessage(message.from, arabicMedia);
+          if (arabicImagePath) {
+               // Send the Arabic text image via WhatsApp
+               const arabicMedia = MessageMedia.fromFilePath(arabicImagePath);
+               to ? await client.sendMessage(to, arabicMedia) : await client.sendMessage(message.from, arabicMedia);
+          }
 
-          // Send the French text image via WhatsApp
-          const frenchMedia = MessageMedia.fromFilePath(frenchImagePath);
-          to ? await client.sendMessage(to, frenchMedia) : await client.sendMessage(message.from, frenchMedia);
+          if (frenchImagePath) {
+               // Send the French text image via WhatsApp
+               const frenchMedia = MessageMedia.fromFilePath(frenchImagePath);
+               to ? await client.sendMessage(to, frenchMedia) : await client.sendMessage(message.from, frenchMedia);
+          }
 
           // Send the audio via WhatsApp
           const audioUrl = dataAudio.audio;
@@ -208,8 +237,13 @@ const generateQuranSurahPDF = async (surahData, translationData) => {
                doc.addPage();
           });
 
+          // Ajouter la traduction française complète
+          doc.font('Lobster-Regular.ttf').fontSize(14);
+          translationData.ayahs.forEach((ayah, index) => {
+               doc.text(ayah.text, { align: 'left' });
+               doc.addPage();
+          });
 
-          // doc.font('Arial.ttf').fontSize(14).text(translationData.ayahs[index].text, { align: 'left' });
           doc.end();
           writeStream.on('finish', () => {
                resolve(pdfPath);
